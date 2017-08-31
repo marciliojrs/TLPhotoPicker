@@ -16,6 +16,8 @@ public protocol TLPhotosPickerViewControllerDelegate: class {
     func dismissComplete()
     func photoPickerDidCancel()
     func didExceedMaximumNumberOfSelection(picker: TLPhotosPickerViewController)
+    func picker(_ picker: TLPhotosPickerViewController, willSelectTLPHAsset asset: TLPHAsset)
+    func picker(_ picker: TLPhotosPickerViewController, willSelectPHAsset asset: PHAsset)
 }
 extension TLPhotosPickerViewControllerDelegate {
     public func dismissPhotoPicker(withPHAssets: [PHAsset]) { }
@@ -23,6 +25,8 @@ extension TLPhotosPickerViewControllerDelegate {
     public func dismissComplete() { }
     public func photoPickerDidCancel() { }
     public func didExceedMaximumNumberOfSelection(picker: TLPhotosPickerViewController) { }
+    public func picker(_ picker: TLPhotosPickerViewController, willSelectTLPHAsset asset: TLPHAsset) { }
+    public func picker(_ picker: TLPhotosPickerViewController, willSelectPHAsset asset: PHAsset) { }
 }
 
 public struct TLPhotosPickerConfigure {
@@ -381,6 +385,12 @@ extension TLPhotosPickerViewController {
         }
         return false
     }
+
+    public func clearSelectedAssets(ofTypes types: [TLPHAsset.AssetType] = [.photo, .video, .livePhoto]) {
+        selectedAssets = selectedAssets.filter { !types.contains($0.type) }
+        orderUpdateCells()
+        stopPlay()
+    }
 }
 
 // MARK: - TLPhotoLibraryDelegate
@@ -575,9 +585,15 @@ extension TLPhotosPickerViewController: UICollectionViewDelegate,UICollectionVie
             if self.playRequestId?.indexPath == indexPath {
                 stopPlay()
             }
-        }else {
+        } else {
         //select
             guard !maxCheck() else { return }
+
+            delegate?.picker(self, willSelectTLPHAsset: asset)
+            if let phAsset = asset.phAsset {
+                delegate?.picker(self, willSelectPHAsset: phAsset)
+            }
+
             asset.selectedOrder = self.selectedAssets.count + 1
             self.selectedAssets.append(asset)
             //requestCloudDownload(asset: asset, indexPath: indexPath)
